@@ -59,7 +59,7 @@ if __name__ == '__main__':
 @app.route("/api/v1/retrain/", methods=["GET"])
 def retrain():
     try:
-        path = "data/Students_Social_Media_Addiction.csv"
+        path = "/data/Students_Social_Media_Addiction.csv"
         if not os.path.exists(path):
             return jsonify({"error": f"Archivo no encontrado en: {path}"}), 404
         data = pd.read_csv(path)
