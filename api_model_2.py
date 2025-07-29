@@ -53,7 +53,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-'''
+
 # Enruta la función al endpoint /api/v1/retrain
 @app.route("/api/v1/retrain/", methods=["GET"])
 def retrain():  # Ligado al endpoint '/api/v1/retrain/', método GET
@@ -79,4 +79,3 @@ def retrain():  # Ligado al endpoint '/api/v1/retrain/', método GET
     else:
         return "<h2>New data for retrain NOT FOUND. Nothing done!</h2>"
 
-'''
