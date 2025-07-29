@@ -59,7 +59,7 @@ if __name__ == '__main__':
 @app.route("/api/v1/retrain/", methods=["GET"])
 def retrain():
     try:
-        path = "data/Students_Social_Media_addiction.csv"
+        path = "data/Students_Social_Media_Addiction.csv"
         if not os.path.exists(path):
             return jsonify({"error": f"Archivo no encontrado en: {path}"}), 404
         data = pd.read_csv(path)
@@ -77,12 +77,7 @@ def retrain():
         return f"Model retrained. New evaluation metric RMSE: {rmse:.4f}, MAPE: {mape:.4f}"
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-# Endpoint para depuración: ver archivos disponibles
-@app.route("/api/v1/files", methods=["GET"])
-def list_files():
-    return jsonify({
-        "root": os.listdir("."),
-        "data": os.listdir("data") if os.path.exists("data") else "NO EXISTE"
-    })
+
+
 if __name__ == '__main__':
     app.run(debug=True)
