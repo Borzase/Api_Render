@@ -60,19 +60,70 @@ def retrain():
         path = "data/New_Students_Addiction.csv"
         if not os.path.exists(path):
             return jsonify({"error": f"Archivo no encontrado en: {path}"}), 404
+
         data = pd.read_csv(path)
-        X = data.drop(columns=["Addicted_Score"])
-        y = data["Addicted_Score"]
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.20, random_state=42
-        )
-        model = Lasso(alpha=6000)
+
+        # Variables que usas en el predict
+        col_age = ["Age_19", "Age_20", "Age_21", "Age_22", "Age_23", "Age_24"]
+        col_cont = ["Continent_Asia", "Continent_Europe", "Continent_North America", "Continent_Oceania", "Continent_South America"]
+        all_columns = ["Sleep_Hours_Per_Night"] + col_cont + col_age
+
+        # Validación de columnas necesarias
+        required_columns = ["Age", "Continent", "Sleep_Hours_Per_Night", "Addicted_Score"]
+        for col in required_columns:
+            if col not in data.columns:
+                return jsonify({"error": f"Columna faltante en CSV: {col}"}), 400
+
+        # One-hot encoding
+        df = data.copy()
+        df = df[df["Age"].isin([19, 20, 21, 22, 23, 24])]  # Filtra edades válidas
+        df = df[df["Continent"].isin([c.split("_")[1] for c in col_cont])]  # Filtra continentes válidos
+
+        # Dummy variables
+        age_dummies = pd.get_dummies(df["Age"], prefix="Age")
+        cont_dummies = pd.get_dummies(df["Continent"], prefix="Continent")
+        df = pd.concat([df[["Sleep_Hours_Per_Night", "Addicted_Score"]], age_dummies, cont_dummies], axis=1)
+
+        # Asegura que todas las columnas están presentes (incluso si alguna categoría no aparece en los datos)
+        for col in col_age + col_cont:
+            if col not in df.columns:
+                df[col] = 0
+
+        # Orden correcto
+        df = df[["Sleep_Hours_Per_Night"] + col_cont + col_age + ["Addicted_Score"]]
+
+        X = df.drop(columns=["Addicted_Score"])
+        y = df["Addicted_Score"]
+
+        # Entrenamiento
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        model = Lasso(alpha=10)  # Reducimos alpha para evitar que colapse
+
         model.fit(X_train, y_train)
-        rmse = np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
-        mape = mean_absolute_percentage_error(y_test, model.predict(X_test))
+
+        # Métricas
+        y_pred = model.predict(X_test)
+        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+        mape = mean_absolute_percentage_error(y_test, y_pred)
+
+        # Guardar modelo
         with open("model_2.pkl", "wb") as f:
             pickle.dump(model, f)
-        return f"Model retrained. New evaluation metric RMSE: {rmse:.4f}, MAPE: {mape:.4f}"
+
+        # Mostrar coeficientes para validar
+        coefs = dict(zip(X.columns, model.coef_))
+        print("Coeficientes del modelo:")
+        for k, v in coefs.items():
+            print(f"{k}: {v:.4f}")
+
+        return jsonify({
+            "message": f"Modelo reentrenado correctamente",
+            "RMSE": round(rmse, 4),
+            "MAPE": round(mape, 4),
+            "Coeficientes_cero": sum(1 for v in model.coef_ if v == 0),
+            "Coeficientes_distintos": sum(1 for v in model.coef_ if v != 0)
+        })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
