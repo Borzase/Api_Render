@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Lasso
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 import numpy as np
+from sklearn.linear_model import LinearRegression
 
 app = Flask(__name__)
 @app.route("/", methods=["GET"])
@@ -54,7 +55,7 @@ if __name__ == '__main__':
 
 
 
-from sklearn.linear_model import LinearRegression
+
 
 ''' 
 @app.route("/api/v1/retrain/", methods=["GET"])
@@ -70,13 +71,13 @@ def retrain():
         col_age = ["Age_19", "Age_20", "Age_21", "Age_22", "Age_23", "Age_24"]
         col_cont = ["Continent_Asia", "Continent_Europe", "Continent_North America", "Continent_Oceania", "Continent_South America"]
 
-        # Verificación de columnas mínimas
+        # Validación de columnas necesarias
         required_columns = ["Age", "Continent", "Sleep_Hours_Per_Night", "Addicted_Score"]
         for col in required_columns:
             if col not in data.columns:
                 return jsonify({"error": f"Columna faltante en CSV: {col}"}), 400
 
-        # Filtrar datos válidos
+        # Filtrar valores válidos
         df = data.copy()
         df = df[df["Age"].isin([19, 20, 21, 22, 23, 24])]
         df = df[df["Continent"].isin([c.split("_")[1] for c in col_cont])]
@@ -97,7 +98,7 @@ def retrain():
         X = df.drop(columns=["Addicted_Score"])
         y = df["Addicted_Score"]
 
-        # Entrenar con LinearRegression
+        # Entrenar modelo
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         model = LinearRegression()
         model.fit(X_train, y_train)
@@ -111,18 +112,10 @@ def retrain():
         with open("model_2.pkl", "wb") as f:
             pickle.dump(model, f)
 
-        # Mostrar coeficientes
-        coefs = dict(zip(X.columns, model.coef_))
-        print("Coeficientes del modelo:")
-        for k, v in coefs.items():
-            print(f"{k}: {v:.4f}")
-
         return jsonify({
             "message": "Modelo reentrenado correctamente",
             "RMSE": round(rmse, 4),
-            "MAPE": round(mape, 4),
-            "Coeficientes_cero": sum(1 for v in model.coef_ if v == 0),
-            "Coeficientes_distintos": sum(1 for v in model.coef_ if v != 0)
+            "MAPE": round(mape, 4)
         })
 
     except Exception as e:
