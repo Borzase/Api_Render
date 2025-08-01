@@ -54,6 +54,8 @@ if __name__ == '__main__':
 
 
 
+from sklearn.linear_model import LinearRegression
+
 @app.route("/api/v1/retrain/", methods=["GET"])
 def retrain():
     try:
@@ -63,28 +65,27 @@ def retrain():
 
         data = pd.read_csv(path)
 
-        # Variables que usas en el predict
+        # Variables esperadas
         col_age = ["Age_19", "Age_20", "Age_21", "Age_22", "Age_23", "Age_24"]
         col_cont = ["Continent_Asia", "Continent_Europe", "Continent_North America", "Continent_Oceania", "Continent_South America"]
-        all_columns = ["Sleep_Hours_Per_Night"] + col_cont + col_age
 
-        # Validación de columnas necesarias
+        # Verificación de columnas mínimas
         required_columns = ["Age", "Continent", "Sleep_Hours_Per_Night", "Addicted_Score"]
         for col in required_columns:
             if col not in data.columns:
                 return jsonify({"error": f"Columna faltante en CSV: {col}"}), 400
 
-        # One-hot encoding
+        # Filtrar datos válidos
         df = data.copy()
-        df = df[df["Age"].isin([19, 20, 21, 22, 23, 24])]  # Filtra edades válidas
-        df = df[df["Continent"].isin([c.split("_")[1] for c in col_cont])]  # Filtra continentes válidos
+        df = df[df["Age"].isin([19, 20, 21, 22, 23, 24])]
+        df = df[df["Continent"].isin([c.split("_")[1] for c in col_cont])]
 
-        # Dummy variables
+        # One-hot encoding
         age_dummies = pd.get_dummies(df["Age"], prefix="Age")
         cont_dummies = pd.get_dummies(df["Continent"], prefix="Continent")
         df = pd.concat([df[["Sleep_Hours_Per_Night", "Addicted_Score"]], age_dummies, cont_dummies], axis=1)
 
-        # Asegura que todas las columnas están presentes (incluso si alguna categoría no aparece en los datos)
+        # Asegurar columnas completas
         for col in col_age + col_cont:
             if col not in df.columns:
                 df[col] = 0
@@ -95,10 +96,9 @@ def retrain():
         X = df.drop(columns=["Addicted_Score"])
         y = df["Addicted_Score"]
 
-        # Entrenamiento
+        # Entrenar con LinearRegression
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model = Lasso(alpha=10)  # Reducimos alpha para evitar que colapse
-
+        model = LinearRegression()
         model.fit(X_train, y_train)
 
         # Métricas
@@ -110,14 +110,14 @@ def retrain():
         with open("model_2.pkl", "wb") as f:
             pickle.dump(model, f)
 
-        # Mostrar coeficientes para validar
+        # Mostrar coeficientes
         coefs = dict(zip(X.columns, model.coef_))
         print("Coeficientes del modelo:")
         for k, v in coefs.items():
             print(f"{k}: {v:.4f}")
 
         return jsonify({
-            "message": f"Modelo reentrenado correctamente",
+            "message": "Modelo reentrenado correctamente",
             "RMSE": round(rmse, 4),
             "MAPE": round(mape, 4),
             "Coeficientes_cero": sum(1 for v in model.coef_ if v == 0),
@@ -126,6 +126,7 @@ def retrain():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == '__main__':
