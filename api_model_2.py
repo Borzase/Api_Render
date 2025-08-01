@@ -53,8 +53,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
-
-
+'''
 @app.route("/api/v1/retrain/", methods=["GET"])
 def retrain():
     try:
@@ -81,3 +80,4 @@ def retrain():
 if __name__ == '__main__':
     app.run(debug=True)
 
+'''
