@@ -56,6 +56,7 @@ if __name__ == '__main__':
 
 from sklearn.linear_model import LinearRegression
 
+''' 
 @app.route("/api/v1/retrain/", methods=["GET"])
 def retrain():
     try:
@@ -132,3 +133,4 @@ def retrain():
 if __name__ == '__main__':
     app.run(debug=True)
 
+'''
